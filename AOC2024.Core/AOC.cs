@@ -80,7 +80,7 @@ namespace AOC2024.Core
             return (allIncrease || allDecrease) && diffOK;
         }
 
-        public string WriteToSb(string input, bool isTest)
+        private string WriteToSb(string input, bool isTest)
         {
             var teststr = isTest ? "[TEST] " : "";
             return $"{teststr}{input}";
@@ -121,10 +121,93 @@ namespace AOC2024.Core
             var lines = DataLoader.GetLines(4, isTest);
             long total1 = 0, total2 = 0;
 
+            for (int i = 0; i < lines.Count; i++)
+            {
+                for (int j = 0; j < lines[i].Length; j++)
+                {
+                    if (lines[i][j] == 'X')
+                    {
+                        total1 += CountXmas(lines, i, j);
+                    }
+
+                    if (lines[i][j] == 'A' 
+                        && i < lines.Count - 1 && j < lines[i].Count() - 1 && i >= 1 && j >= 1
+                        && IsMas(lines, i, j))
+                    {
+                        total2++; 
+                    }
+                }
+            }
+
             sb.AppendLine(WriteToSb($"D4P1 : {total1}", isTest));
             sb.AppendLine(WriteToSb($"D4P2 : {total2}", isTest));
 
             return sb.ToString();
+        }
+
+        private bool IsMas(List<string> lines, int i, int j)
+        {
+            var enumerable = Enumerable.Range(-1, 3);
+            string downRight = string.Concat(enumerable.Select(x => lines[i + x][j + x]));
+            string upRight = string.Concat(enumerable.Select(x => lines[i - x][j + x]));
+            return (downRight == "MAS" || downRight == "SAM") &&
+                (upRight == "MAS" || upRight == "SAM");
+        }
+
+        private long CountXmas(List<string> lines, int i, int j)
+        {
+            var total = 0;
+            var enumerable = Enumerable.Range(0, 4);
+
+            // right
+            if (j < lines[i].Count() - 3 && string.Concat(enumerable.Select(x => lines[i][j + x])) == "XMAS")
+            {
+                total++;
+            }
+
+            // left
+            if (j >= 3 && string.Concat(enumerable.Select(x => lines[i][j - x])) == "XMAS")
+            {
+                total++;
+            }
+
+            // down
+            if (i < lines.Count - 3 && string.Concat(enumerable.Select(x => lines[i + x][j])) == "XMAS")
+            {
+                total++;
+            }
+
+            // up
+            if (i >= 3 && string.Concat(enumerable.Select(x => lines[i - x][j])) == "XMAS")
+            {
+                total++;
+            }
+
+            // down right
+            if (i < lines.Count - 3 && j < lines[i].Count() - 3 && string.Concat(enumerable.Select(x => lines[i + x][j + x])) == "XMAS")
+            {
+                total++;
+            }
+
+            // down left
+            if (i < lines.Count - 3 && j >= 3 && string.Concat(enumerable.Select(x => lines[i + x][j - x])) == "XMAS")
+            {
+                total++;
+            }
+
+            // up right
+            if (i >= 3 && j < lines[i].Count() - 3 && string.Concat(enumerable.Select(x => lines[i - x][j + x])) == "XMAS")
+            {
+                total++;
+            }
+
+            // up left
+            if (i >= 3 && j >= 3 && string.Concat(enumerable.Select(x => lines[i - x][j - x])) == "XMAS")
+            {
+                total++;
+            }
+
+            return total;
         }
     }
 }
