@@ -157,8 +157,8 @@ namespace AOC2024.Core
                 }
                 else
                 {
-                    var sortedUpdate = Sort(rules, update);
-                    total2 += sortedUpdate[update.Count / 2];
+                    var sortedUpdate = Sort(rules, update.ToList());
+                    total2 += sortedUpdate[sortedUpdate.Count / 2];
                 }
             }
 
@@ -168,9 +168,8 @@ namespace AOC2024.Core
             return sb.ToString();
         }
 
-        private List<int> Sort(List<Tuple<int, int>> rules, List<int> update)
+        private List<int> Sort(List<Tuple<int, int>> rules, List<int> pagesToSort)
         {
-            var pagesToSort = update.ToList();
             var sortedUpdate = new List<int>();
             while (pagesToSort.Any())
             {
