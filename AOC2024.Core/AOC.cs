@@ -1,5 +1,5 @@
-﻿
-using System.Collections;
+﻿using System.Collections;
+using System.Reflection.Metadata;
 using System.Text;
 using System.Text.RegularExpressions;
 
@@ -70,22 +70,6 @@ namespace AOC2024.Core
             return sb.ToString();
         }
 
-        private static bool IsLevelOK(List<int> values)
-        {
-            var levels = values.Skip(1).Select((x, i) => x - values[i]).ToList();
-            var allIncrease = levels.All(x => x > 0);
-            var allDecrease = levels.All(x => x < 0);
-            var diffOK = levels.All(x => Math.Abs(x) <= 3 && Math.Abs(x) >= 1);
-
-            return (allIncrease || allDecrease) && diffOK;
-        }
-
-        private string WriteToSb(string input, bool isTest)
-        {
-            var teststr = isTest ? "[TEST] " : "";
-            return $"{teststr}{input}";
-        }
-
         public string Day3(bool isTest)
         {
             var sb = new StringBuilder();
@@ -130,11 +114,11 @@ namespace AOC2024.Core
                         total1 += CountXmas(lines, i, j);
                     }
 
-                    if (lines[i][j] == 'A' 
+                    if (lines[i][j] == 'A'
                         && i < lines.Count - 1 && j < lines[i].Count() - 1 && i >= 1 && j >= 1
                         && IsMas(lines, i, j))
                     {
-                        total2++; 
+                        total2++;
                     }
                 }
             }
@@ -145,13 +129,94 @@ namespace AOC2024.Core
             return sb.ToString();
         }
 
-        private bool IsMas(List<string> lines, int i, int j)
+        public string Day5(bool isTest)
         {
-            var enumerable = Enumerable.Range(-1, 3);
-            string downRight = string.Concat(enumerable.Select(x => lines[i + x][j + x]));
-            string upRight = string.Concat(enumerable.Select(x => lines[i - x][j + x]));
-            return (downRight == "MAS" || downRight == "SAM") &&
-                (upRight == "MAS" || upRight == "SAM");
+            var sb = new StringBuilder();
+            var lines = DataLoader.GetLines(5, isTest);
+            long total1 = 0, total2 = 0;
+            var rules = new List<Tuple<int, int>>();
+            var updates = new List<List<int>>();
+            foreach (var line in lines)
+            {
+                if (line.Contains("|"))
+                {
+                    var values = line.Split("|");
+                    rules.Add(new Tuple<int, int>(int.Parse(values.First()), int.Parse(values.Last())));
+                }
+                else if (line.Contains(","))
+                {
+                    updates.Add(line.Split(",",StringSplitOptions.RemoveEmptyEntries).Select(x => int.Parse(x)).ToList());
+                }
+            }
+
+            foreach (var update in updates)
+            {
+                if (IsSorted(rules, update))
+                {
+                    total1 += update[update.Count / 2];
+                }
+                else
+                {
+                    var sortedUpdate = Sort(rules, update);
+                    total2 += sortedUpdate[update.Count / 2];
+                }
+            }
+
+            sb.AppendLine(WriteToSb($"D5P1 : {total1}", isTest));
+            sb.AppendLine(WriteToSb($"D5P2 : {total2}", isTest));
+
+            return sb.ToString();
+        }
+
+        private List<int> Sort(List<Tuple<int, int>> rules, List<int> update)
+        {
+            var pagesToSort = update.ToList();
+            var sortedUpdate = new List<int>();
+            while (pagesToSort.Any())
+            {
+                for (var i = 0; i < pagesToSort.Count; i++)
+                {
+                    var page = pagesToSort[i];
+                    var remainingItems = pagesToSort.Skip(i).Take(pagesToSort.Count - i).ToList();
+                    var relevantOrders = rules.Where(x => x.Item2 == page).ToList();
+                    if (!relevantOrders.Any(x => remainingItems.Contains(x.Item1)))
+                    {
+                        sortedUpdate.Add(pagesToSort[i]);
+                        pagesToSort.Remove(pagesToSort[i]);
+                        break;
+                    }
+                }
+            }
+
+            return sortedUpdate;
+        }
+
+        private bool IsSorted(List<Tuple<int, int>> rules, List<int> update)
+        {
+            var isSorted = true;
+            for (var i = 0; i < update.Count; i++)
+            {
+                var value = update[i];
+                var remainingItems = update.Skip(i).Take(update.Count - i).ToList();
+                var relevantOrders = rules.Where(x => x.Item2 == value).ToList();
+                if (relevantOrders.Any(x => remainingItems.Contains(x.Item1)))
+                {
+                    isSorted = false;
+                    break;
+                }
+            }
+
+            return isSorted;
+        }
+
+        private bool IsLevelOK(List<int> values)
+        {
+            var levels = values.Skip(1).Select((x, i) => x - values[i]).ToList();
+            var allIncrease = levels.All(x => x > 0);
+            var allDecrease = levels.All(x => x < 0);
+            var diffOK = levels.All(x => Math.Abs(x) <= 3 && Math.Abs(x) >= 1);
+
+            return (allIncrease || allDecrease) && diffOK;
         }
 
         private long CountXmas(List<string> lines, int i, int j)
@@ -208,6 +273,21 @@ namespace AOC2024.Core
             }
 
             return total;
+        }
+
+        private bool IsMas(List<string> lines, int i, int j)
+        {
+            var enumerable = Enumerable.Range(-1, 3);
+            string downRight = string.Concat(enumerable.Select(x => lines[i + x][j + x]));
+            string upRight = string.Concat(enumerable.Select(x => lines[i - x][j + x]));
+            return (downRight == "MAS" || downRight == "SAM") &&
+                (upRight == "MAS" || upRight == "SAM");
+        }
+
+        private string WriteToSb(string input, bool isTest)
+        {
+            var teststr = isTest ? "[TEST] " : "";
+            return $"{teststr}{input}";
         }
     }
 }
