@@ -1,4 +1,6 @@
 ﻿using System.Collections;
+using System.Data;
+using System.Drawing;
 using System.Reflection.Metadata;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -145,7 +147,7 @@ namespace AOC2024.Core
                 }
                 else if (line.Contains(","))
                 {
-                    updates.Add(line.Split(",",StringSplitOptions.RemoveEmptyEntries).Select(x => int.Parse(x)).ToList());
+                    updates.Add(line.Split(",", StringSplitOptions.RemoveEmptyEntries).Select(x => int.Parse(x)).ToList());
                 }
             }
 
@@ -168,54 +170,42 @@ namespace AOC2024.Core
             return sb.ToString();
         }
 
-        private List<int> Sort(List<Tuple<int, int>> rules, List<int> pagesToSort)
+        public string Day6(bool isTest)
         {
-            var sortedUpdate = new List<int>();
-            while (pagesToSort.Any())
+            var sb = new StringBuilder();
+            var lines = DataLoader.GetLines(6, isTest);
+            long total1 = 0, total2 = 0;
+
+            var map = new Map2D(lines);
+
+            while (!map.IsMoveComplete)
             {
-                for (var i = 0; i < pagesToSort.Count; i++)
+                map.MoveToNext();
+            }
+
+            total1 = map.CountVisited();
+            var previouslyVisited = map.GetVisited();
+            for (int y = 0; y < map.NumRows; y++)
+            {
+                for (int x = 0; x < map.NumCols; x++)
                 {
-                    var page = pagesToSort[i];
-                    var remainingItems = pagesToSort.Skip(i).Take(pagesToSort.Count - i).ToList();
-                    var relevantOrders = rules.Where(x => x.Item2 == page).ToList();
-                    if (!relevantOrders.Any(x => remainingItems.Contains(x.Item1)))
+                    if (map.GetCharAtLocation(x, y) == '.' && previouslyVisited[y][x])
                     {
-                        sortedUpdate.Add(pagesToSort[i]);
-                        pagesToSort.Remove(pagesToSort[i]);
-                        break;
+                        map.Reset();
+                        map.SetCharAtLocation(x, y, '#');
+                        if (map.CheckForLoop())
+                        {
+                            total2++;
+                        }
+
+                        map.SetCharAtLocation(x, y, '.');
                     }
                 }
             }
+            sb.AppendLine(WriteToSb($"D6P1 : {total1}", isTest));
+            sb.AppendLine(WriteToSb($"D6P2 : {total2}", isTest));
 
-            return sortedUpdate;
-        }
-
-        private bool IsSorted(List<Tuple<int, int>> rules, List<int> update)
-        {
-            var isSorted = true;
-            for (var i = 0; i < update.Count; i++)
-            {
-                var value = update[i];
-                var remainingItems = update.Skip(i).Take(update.Count - i).ToList();
-                var relevantOrders = rules.Where(x => x.Item2 == value).ToList();
-                if (relevantOrders.Any(x => remainingItems.Contains(x.Item1)))
-                {
-                    isSorted = false;
-                    break;
-                }
-            }
-
-            return isSorted;
-        }
-
-        private bool IsLevelOK(List<int> values)
-        {
-            var levels = values.Skip(1).Select((x, i) => x - values[i]).ToList();
-            var allIncrease = levels.All(x => x > 0);
-            var allDecrease = levels.All(x => x < 0);
-            var diffOK = levels.All(x => Math.Abs(x) <= 3 && Math.Abs(x) >= 1);
-
-            return (allIncrease || allDecrease) && diffOK;
+            return sb.ToString();
         }
 
         private long CountXmas(List<string> lines, int i, int j)
@@ -274,6 +264,16 @@ namespace AOC2024.Core
             return total;
         }
 
+        private bool IsLevelOK(List<int> values)
+        {
+            var levels = values.Skip(1).Select((x, i) => x - values[i]).ToList();
+            var allIncrease = levels.All(x => x > 0);
+            var allDecrease = levels.All(x => x < 0);
+            var diffOK = levels.All(x => Math.Abs(x) <= 3 && Math.Abs(x) >= 1);
+
+            return (allIncrease || allDecrease) && diffOK;
+        }
+
         private bool IsMas(List<string> lines, int i, int j)
         {
             var enumerable = Enumerable.Range(-1, 3);
@@ -281,6 +281,46 @@ namespace AOC2024.Core
             string upRight = string.Concat(enumerable.Select(x => lines[i - x][j + x]));
             return (downRight == "MAS" || downRight == "SAM") &&
                 (upRight == "MAS" || upRight == "SAM");
+        }
+
+        private bool IsSorted(List<Tuple<int, int>> rules, List<int> update)
+        {
+            var isSorted = true;
+            for (var i = 0; i < update.Count; i++)
+            {
+                var value = update[i];
+                var remainingItems = update.Skip(i).Take(update.Count - i).ToList();
+                var relevantOrders = rules.Where(x => x.Item2 == value).ToList();
+                if (relevantOrders.Any(x => remainingItems.Contains(x.Item1)))
+                {
+                    isSorted = false;
+                    break;
+                }
+            }
+
+            return isSorted;
+        }
+
+        private List<int> Sort(List<Tuple<int, int>> rules, List<int> pagesToSort)
+        {
+            var sortedUpdate = new List<int>();
+            while (pagesToSort.Any())
+            {
+                for (var i = 0; i < pagesToSort.Count; i++)
+                {
+                    var page = pagesToSort[i];
+                    var remainingItems = pagesToSort.Skip(i).Take(pagesToSort.Count - i).ToList();
+                    var relevantOrders = rules.Where(x => x.Item2 == page).ToList();
+                    if (!relevantOrders.Any(x => remainingItems.Contains(x.Item1)))
+                    {
+                        sortedUpdate.Add(pagesToSort[i]);
+                        pagesToSort.Remove(pagesToSort[i]);
+                        break;
+                    }
+                }
+            }
+
+            return sortedUpdate;
         }
 
         private string WriteToSb(string input, bool isTest)
