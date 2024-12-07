@@ -1,7 +1,4 @@
-﻿using System.Collections;
-using System.Data;
-using System.Drawing;
-using System.Reflection.Metadata;
+﻿using System.Data;
 using System.Text;
 using System.Text.RegularExpressions;
 
@@ -204,6 +201,58 @@ namespace AOC2024.Core
             }
             sb.AppendLine(WriteToSb($"D6P1 : {total1}", isTest));
             sb.AppendLine(WriteToSb($"D6P2 : {total2}", isTest));
+
+            return sb.ToString();
+        }
+
+        public string Day7(bool isTest)
+        {
+            var sb = new StringBuilder();
+            var lines = DataLoader.GetLines(7, isTest);
+            long total1 = 0, total2 = 0;
+            foreach (var line in lines)
+            {
+                string[] temp = line.Split(":");
+                var testValue = long.Parse(temp.First());
+                var values = temp.Last().Split(" ", StringSplitOptions.RemoveEmptyEntries).Select(x => int.Parse(x)).ToList();
+
+                var ops = Math.Pow(3, values.Count);
+                for (int i = 0; i < ops; i++)
+                {
+                    var total = (long)values.First();
+                    var usesConcat = false;
+                    for (int j = 0; j < values.Count - 1; j++)
+                    {
+                        var index = i / (int)Math.Pow(3, j) % 3;
+                        if (index == 0)
+                        {
+                            total += values[j + 1];   
+                        }
+                        else if (index == 1)
+                        {
+                            total *= values[j + 1];
+                        }
+                        else if (index == 2)
+                        {
+                            usesConcat = true;
+                            total = long.Parse($"{total}{values[j + 1]}");
+                        }
+                    }
+
+                    if (total == testValue)
+                    {
+                        if (!usesConcat)
+                        {
+                            total1 += testValue;
+                        }
+
+                        total2 += testValue;
+                        break;
+                    }
+                }
+            }
+            sb.AppendLine(WriteToSb($"D7P1 : {total1}", isTest));
+            sb.AppendLine(WriteToSb($"D7P2 : {total2}", isTest));
 
             return sb.ToString();
         }
