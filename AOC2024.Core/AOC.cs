@@ -1,4 +1,5 @@
 ﻿using System.Data;
+using System.Drawing;
 using System.Text;
 using System.Text.RegularExpressions;
 
@@ -173,7 +174,7 @@ namespace AOC2024.Core
             var lines = DataLoader.GetLines(6, isTest);
             long total1 = 0, total2 = 0;
 
-            var map = new Map2D(lines);
+            var map = new SentryMap(lines);
 
             while (!map.IsMoveComplete)
             {
@@ -226,7 +227,7 @@ namespace AOC2024.Core
                         var index = i / (int)Math.Pow(3, j) % 3;
                         if (index == 0)
                         {
-                            total += values[j + 1];   
+                            total += values[j + 1];
                         }
                         else if (index == 1)
                         {
@@ -255,6 +256,112 @@ namespace AOC2024.Core
             sb.AppendLine(WriteToSb($"D7P2 : {total2}", isTest));
 
             return sb.ToString();
+        }
+
+        public string Day8(bool isTest)
+        {
+            var sb = new StringBuilder();
+            var lines = DataLoader.GetLines(8, isTest);
+            long total1 = 0, total2 = 0;
+            var map = new Map2D(lines);
+            var antennas = new List<Antenna>();
+            var antinodes = new List<Point>();
+            for (int y = 0; y < map.NumRows; y++)
+            {
+                for (int x = 0; x < map.NumCols; x++)
+                {
+                    char freq = map.GetCharAtLocation(x, y);
+                    if (freq != '.')
+                    {
+                        antennas.Add(new Antenna(freq, new System.Drawing.Point(x, y)));
+                    }
+                }
+            }
+
+            foreach (var frequency in antennas.Select(x => x.Frequency).Distinct())
+            {
+                var relevantAntennas = antennas.Where(x => x.Frequency == frequency).ToList();
+                for (int i = 0; i < relevantAntennas.Count - 1; i++)
+                {
+                    var firstAntenna = relevantAntennas[i];
+                    for (int j = i + 1; j < relevantAntennas.Count; j++)
+                    {
+                        var secondAntenna = relevantAntennas[j];
+                        var vector = secondAntenna.Location - new Size(firstAntenna.Location);
+                        var antinode1 = firstAntenna.Location - new Size(vector);
+                        var antinode2 = secondAntenna.Location + new Size(vector);
+                        if (!antinodes.Contains(antinode1) && !map.IsLocationOutOfBounds(antinode1))
+                        {
+                            total1++;
+                            antinodes.Add(antinode1);
+                        }
+
+                        if (!antinodes.Contains(antinode2) && !map.IsLocationOutOfBounds(antinode2))
+                        {
+                            total1++;
+                            antinodes.Add(antinode2);
+                        }
+
+                        if (!antinodes.Contains(firstAntenna.Location))
+                        {
+                            antinodes.Add(firstAntenna.Location);
+                        }
+
+                        if (!antinodes.Contains(secondAntenna.Location))
+                        {
+                            antinodes.Add(secondAntenna.Location);
+                        }
+
+                        var smallestVector = FindSmallestVector(vector);
+                        bool smallestFound = false, largestFound = false;
+                        var small = firstAntenna.Location;
+                        var large = firstAntenna.Location;
+                        while (!smallestFound || !largestFound)
+                        {
+                            small = small - new Size(smallestVector);
+                            large = large + new Size(smallestVector);
+                            smallestFound = map.IsLocationOutOfBounds(small);
+                            if (!antinodes.Contains(small) && !smallestFound)
+                            {
+                                antinodes.Add(small);
+                            }
+
+                            largestFound = map.IsLocationOutOfBounds(large);
+                            if (!antinodes.Contains(large) && !largestFound)
+                            {
+                                antinodes.Add(large);
+                            }
+                        }
+                    }
+                }
+            }
+
+            total2 = antinodes.Count;
+
+            sb.AppendLine(WriteToSb($"D8P1 : {total1}", isTest));
+            sb.AppendLine(WriteToSb($"D8P2 : {total2}", isTest));
+
+            return sb.ToString();
+        }
+
+        private Point FindSmallestVector(Point vector)
+        {
+            var primes = new List<int>() { 2, 3, 5, 7, 11, 13, 17, 19, 23 };
+            int i = 0;
+            while (i < primes.Count)
+            {
+                if (vector.X % primes[i] == 0 && vector.Y % primes[i] == 0)
+                {
+                    vector = new Point(vector.X / primes[i], vector.Y / primes[i]);
+                    i = 0;
+                }
+                else
+                {
+                    i++;
+                }
+            }
+
+            return vector;
         }
 
         private long CountXmas(List<string> lines, int i, int j)
