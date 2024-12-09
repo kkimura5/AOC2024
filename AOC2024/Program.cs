@@ -21,4 +21,6 @@ Console.WriteLine(aoc.Day7(true));
 //Console.WriteLine(aoc.Day7(false));
 Console.WriteLine(aoc.Day8(true));
 Console.WriteLine(aoc.Day8(false));
+Console.WriteLine(aoc.Day9(true));
+Console.WriteLine(aoc.Day9(false));
 Console.ReadKey();

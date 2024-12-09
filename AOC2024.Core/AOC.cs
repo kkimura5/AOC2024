@@ -1,5 +1,6 @@
 ﻿using System.Data;
 using System.Drawing;
+using System.Linq.Expressions;
 using System.Text;
 using System.Text.RegularExpressions;
 
@@ -344,24 +345,138 @@ namespace AOC2024.Core
             return sb.ToString();
         }
 
-        private Point FindSmallestVector(Point vector)
+        public string Day9(bool isTest)
         {
-            var primes = new List<int>() { 2, 3, 5, 7, 11, 13, 17, 19, 23 };
-            int i = 0;
-            while (i < primes.Count)
+            var sb = new StringBuilder();
+            var lines = DataLoader.GetLines(9, isTest);
+            long total1 = DefragmentAndCalcChecksum(lines.Single());
+            long total2 = MoveFilesAndCalcChecksum(lines.Single());
+
+            sb.AppendLine(WriteToSb($"D9P1 : {total1}", isTest));
+            sb.AppendLine(WriteToSb($"D9P2 : {total2}", isTest));
+
+            return sb.ToString();
+        }
+
+        private long MoveFilesAndCalcChecksum(string line)
+        {
+            long total = 0;
+            var index = 0;
+            var moved = new List<int>();
+            for (int i = 0; i < line.Length; i++)
             {
-                if (vector.X % primes[i] == 0 && vector.Y % primes[i] == 0)
+                var value = int.Parse(line[i].ToString());
+                if (i % 2 == 0)
                 {
-                    vector = new Point(vector.X / primes[i], vector.Y / primes[i]);
-                    i = 0;
+                    var id = i / 2;
+                    var blockSize = value;
+                    if (!moved.Contains(i))
+                    {
+                        int k = 0;
+                        while (blockSize > 0)
+                        {
+                            total += id * (index + k++);
+                            blockSize--;
+                        }
+                    }
+                 
+                    index += value;
                 }
                 else
                 {
-                    i++;
+                    int j = line.Length - 1;
+                    if (line.Length % 2 == 0)
+                    {
+                        j--;
+                    }
+                            
+                    int k = 0;
+                    var gap = value;
+                    for (; j > i; j -= 2)
+                    {
+                        if (moved.Contains(j))
+                        {
+                            continue;
+                        }
+
+                        var id = j / 2;
+                        var endValue = int.Parse(line[j].ToString());
+
+                        if (gap >= endValue)
+                        {
+                            moved.Add(j);
+                            while (endValue > 0)
+                            {
+                                total += id * (index + k++);
+                                endValue--;
+                                gap--;
+                            }
+
+                            if (gap == 0)
+                            {
+                                break;
+                            }
+                        }
+                    }
+
+                    index += value;
                 }
             }
 
-            return vector;
+            return total;
+        }
+
+        private static long DefragmentAndCalcChecksum(string line)
+        {
+            long total1 = 0;
+            int j = line.Length - 1;
+            if (line.Length % 2 == 0)
+            {
+                j--;
+            }
+
+            var endValue = int.Parse(line[j].ToString());
+            var index = 0;
+            for (int i = 0; i <= j; i++)
+            {
+                var value = int.Parse(line[i].ToString());
+                if (i % 2 == 0)
+                {
+                    if (i == j)
+                    {
+                        value = endValue;
+                    }
+
+                    var id = i / 2;
+                    while (value > 0)
+                    {
+                        total1 += id * index++;
+                        value--;
+                    }
+                }
+                else
+                {
+                    var gap = value;
+                    var id = j / 2;
+                    while (gap > 0)
+                    {
+                        if (endValue == 0)
+                        {
+                            j -= 2;
+                            endValue = int.Parse(line[j].ToString());
+                            id = j / 2;
+                        }
+                        else
+                        {
+                            total1 += id * index++;
+                            gap--;
+                            endValue--;
+                        }
+                    }
+                }
+            }
+
+            return total1;
         }
 
         private long CountXmas(List<string> lines, int i, int j)
@@ -420,6 +535,25 @@ namespace AOC2024.Core
             return total;
         }
 
+        private Point FindSmallestVector(Point vector)
+        {
+            var primes = new List<int>() { 2, 3, 5, 7, 11, 13, 17, 19, 23 };
+            int i = 0;
+            while (i < primes.Count)
+            {
+                if (vector.X % primes[i] == 0 && vector.Y % primes[i] == 0)
+                {
+                    vector = new Point(vector.X / primes[i], vector.Y / primes[i]);
+                    i = 0;
+                }
+                else
+                {
+                    i++;
+                }
+            }
+
+            return vector;
+        }
         private bool IsLevelOK(List<int> values)
         {
             var levels = values.Skip(1).Select((x, i) => x - values[i]).ToList();
