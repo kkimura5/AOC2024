@@ -379,8 +379,6 @@ namespace AOC2024.Core
                             blockSize--;
                         }
                     }
-                 
-                    index += value;
                 }
                 else
                 {
@@ -389,7 +387,7 @@ namespace AOC2024.Core
                     {
                         j--;
                     }
-                            
+
                     int k = 0;
                     var gap = value;
                     for (; j > i; j -= 2)
@@ -418,9 +416,9 @@ namespace AOC2024.Core
                             }
                         }
                     }
-
-                    index += value;
                 }
+
+                index += value;
             }
 
             return total;
@@ -554,6 +552,7 @@ namespace AOC2024.Core
 
             return vector;
         }
+
         private bool IsLevelOK(List<int> values)
         {
             var levels = values.Skip(1).Select((x, i) => x - values[i]).ToList();
