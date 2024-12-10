@@ -3,6 +3,7 @@ using System.Drawing;
 using System.Linq.Expressions;
 using System.Text;
 using System.Text.RegularExpressions;
+using System.Xml.Linq;
 
 namespace AOC2024.Core
 {
@@ -358,6 +359,73 @@ namespace AOC2024.Core
             return sb.ToString();
         }
 
+        public string Day10(bool isTest)
+        {
+            var sb = new StringBuilder();
+            var lines = DataLoader.GetLines(10, isTest);
+            long total1 = 0, total2 = 0;
+
+            var map = new Map2D(lines);
+            var pathsByTrailhead = new Dictionary<Point, List<Point>>();
+
+            for (int i = 0; i < map.NumRows; i++)
+            {
+                for (int j = 0; j < map.NumCols; j++)
+                {
+                    if (map.GetCharAtLocation(j, i) == '0')
+                    {
+                        pathsByTrailhead.Add(new Point(j, i), new List<Point>() { new Point(j, i) });
+                    }
+                }
+            }
+
+            foreach (var trailhead in pathsByTrailhead)
+            {
+                var nines = new List<Point>();
+                var lastLocations = trailhead.Value;
+                while (lastLocations.Any())
+                {
+                    var newLocations = new List<Point>();
+                    foreach (var point in lastLocations)
+                    {
+                        var currentValue = int.Parse($"{map.GetCharAtLocation(point)}");
+                        var nextPoints = new List<Point>()
+                        {
+                            point + new Size(1, 0),
+                            point + new Size(0, 1),
+                            point + new Size(-1, 0),
+                            point + new Size(0, -1),
+                        };
+
+                        foreach (var nextPoint in nextPoints)
+                        {
+                            if (!map.IsLocationOutOfBounds(nextPoint) && (int.Parse($"{map.GetCharAtLocation(nextPoint)}") == currentValue + 1))
+                            {
+                                if (int.Parse($"{map.GetCharAtLocation(nextPoint)}") == 9)
+                                {
+                                    nines.Add(nextPoint);
+                                }
+                                else
+                                {
+                                    newLocations.Add(nextPoint);
+                                }
+                            }
+                        }
+                    }
+
+                    lastLocations = newLocations;
+                }
+
+                total1 += nines.Distinct().Count();
+                total2 += nines.Count();
+            }
+
+            sb.AppendLine(WriteToSb($"D10P1 : {total1}", isTest));
+            sb.AppendLine(WriteToSb($"D10P2 : {total2}", isTest));
+
+            return sb.ToString();
+        }
+
         private long MoveFilesAndCalcChecksum(string line)
         {
             long total = 0;
@@ -424,7 +492,7 @@ namespace AOC2024.Core
             return total;
         }
 
-        private static long DefragmentAndCalcChecksum(string line)
+        private long DefragmentAndCalcChecksum(string line)
         {
             long total1 = 0;
             int j = line.Length - 1;

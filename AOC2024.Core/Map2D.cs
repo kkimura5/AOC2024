@@ -20,6 +20,8 @@ namespace AOC2024.Core
             return Lines[y][x];
         }
 
+        public char GetCharAtLocation(Point location) => GetCharAtLocation(location.X, location.Y);
+
         public bool IsLocationOutOfBounds(Point location)
         {
             return location.Y < 0 || location.X < 0 || location.X >= Lines.First().Length || location.Y >= Lines.Count();
