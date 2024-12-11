@@ -425,6 +425,64 @@ namespace AOC2024.Core
 
             return sb.ToString();
         }
+        public string Day11(bool isTest)
+        {
+            var sb = new StringBuilder();
+            var lines = DataLoader.GetLines(11, isTest);
+            long total1 = 0, total2 = 0;
+
+            var rocks = lines.Single().Split();
+            var counts = rocks.GroupBy(x => x).ToDictionary(x => x.Key, x => (long)x.Count());
+            var numIterations = 75;
+            for (int i = 0; i < numIterations; i++)
+            {
+                var newCounts = new Dictionary<string, long>();
+                foreach (var count in counts)
+                {
+                    var rock = count.Key;
+                    if (rock == "0")
+                    {
+                        AddToDict(newCounts, "1", count.Value);
+                    }
+                    else if (rock.Length % 2 == 0)
+                    {
+                        var rock1 = rock.Substring(0, rock.Length / 2);
+                        var rock2 = rock.Substring(rock.Length / 2);
+                        AddToDict(newCounts, $"{long.Parse(rock1)}", count.Value);
+                        AddToDict(newCounts, $"{long.Parse(rock2)}", count.Value);
+                    }
+                    else
+                    {
+                        AddToDict(newCounts, $"{long.Parse(rock) * 2024L}", count.Value);
+                    }
+                }
+
+                counts = newCounts;
+                if (i == 24)
+                {
+                    total1 = counts.Sum(x => x.Value);
+                }
+            }
+
+            total2 = counts.Sum(x => x.Value);
+
+            sb.AppendLine(WriteToSb($"D11P1 : {total1}", isTest));
+            sb.AppendLine(WriteToSb($"D11P2 : {total2}", isTest));
+
+            return sb.ToString();
+        }
+
+        private void AddToDict(Dictionary<string, long> newCounts, string rock, long value)
+        {
+            if (newCounts.ContainsKey(rock))
+            {
+                newCounts[rock] += value;
+            }
+            else
+            {
+                newCounts.Add(rock, value);
+            }
+        }
 
         private long MoveFilesAndCalcChecksum(string line)
         {
