@@ -1,6 +1,7 @@
 ﻿using System.Data;
 using System.Drawing;
 using System.Linq.Expressions;
+using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Xml.Linq;
@@ -36,195 +37,6 @@ namespace AOC2024.Core
             }
 
             sb.AppendLine(WriteToSb($"D1P2 : {similarity}", isTest));
-            return sb.ToString();
-        }
-
-        public string Day10(bool isTest)
-        {
-            var sb = new StringBuilder();
-            var lines = DataLoader.GetLines(10, isTest);
-            long total1 = 0, total2 = 0;
-
-            var map = new Map2D(lines);
-            var pathsByTrailhead = new Dictionary<Point, List<Point>>();
-
-            for (int i = 0; i < map.NumRows; i++)
-            {
-                for (int j = 0; j < map.NumCols; j++)
-                {
-                    if (map.GetCharAtLocation(j, i) == '0')
-                    {
-                        pathsByTrailhead.Add(new Point(j, i), new List<Point>() { new Point(j, i) });
-                    }
-                }
-            }
-
-            foreach (var trailhead in pathsByTrailhead)
-            {
-                var nines = new List<Point>();
-                var lastLocations = trailhead.Value;
-                while (lastLocations.Any())
-                {
-                    var newLocations = new List<Point>();
-                    foreach (var point in lastLocations)
-                    {
-                        var currentValue = int.Parse($"{map.GetCharAtLocation(point)}");
-                        var nextPoints = new List<Point>()
-                        {
-                            point + new Size(1, 0),
-                            point + new Size(0, 1),
-                            point + new Size(-1, 0),
-                            point + new Size(0, -1),
-                        };
-
-                        foreach (var nextPoint in nextPoints)
-                        {
-                            if (!map.IsLocationOutOfBounds(nextPoint) && (int.Parse($"{map.GetCharAtLocation(nextPoint)}") == currentValue + 1))
-                            {
-                                if (int.Parse($"{map.GetCharAtLocation(nextPoint)}") == 9)
-                                {
-                                    nines.Add(nextPoint);
-                                }
-                                else
-                                {
-                                    newLocations.Add(nextPoint);
-                                }
-                            }
-                        }
-                    }
-
-                    lastLocations = newLocations;
-                }
-
-                total1 += nines.Distinct().Count();
-                total2 += nines.Count();
-            }
-
-            sb.AppendLine(WriteToSb($"D10P1 : {total1}", isTest));
-            sb.AppendLine(WriteToSb($"D10P2 : {total2}", isTest));
-
-            return sb.ToString();
-        }
-
-        public string Day11(bool isTest)
-        {
-            var sb = new StringBuilder();
-            var lines = DataLoader.GetLines(11, isTest);
-            long total1 = 0, total2 = 0;
-
-            var rocks = lines.Single().Split();
-            var counts = rocks.GroupBy(x => x).ToDictionary(x => x.Key, x => (long)x.Count());
-            var numIterations = 75;
-            for (int i = 0; i < numIterations; i++)
-            {
-                var newCounts = new Dictionary<string, long>();
-                foreach (var count in counts)
-                {
-                    var rock = count.Key;
-                    if (rock == "0")
-                    {
-                        AddToDict(newCounts, "1", count.Value);
-                    }
-                    else if (rock.Length % 2 == 0)
-                    {
-                        var rock1 = rock.Substring(0, rock.Length / 2);
-                        var rock2 = rock.Substring(rock.Length / 2);
-                        AddToDict(newCounts, $"{long.Parse(rock1)}", count.Value);
-                        AddToDict(newCounts, $"{long.Parse(rock2)}", count.Value);
-                    }
-                    else
-                    {
-                        AddToDict(newCounts, $"{long.Parse(rock) * 2024L}", count.Value);
-                    }
-                }
-
-                counts = newCounts;
-                if (i == 24)
-                {
-                    total1 = counts.Sum(x => x.Value);
-                }
-            }
-
-            total2 = counts.Sum(x => x.Value);
-
-            sb.AppendLine(WriteToSb($"D11P1 : {total1}", isTest));
-            sb.AppendLine(WriteToSb($"D11P2 : {total2}", isTest));
-
-            return sb.ToString();
-        }
-
-        public string Day12(bool isTest)
-        {
-            var sb = new StringBuilder();
-            var lines = DataLoader.GetLines(12, isTest);
-            long total1 = 0, total2 = 0;
-            var map = new Map2D(lines);
-            var visited = new List<List<bool>>();
-            for (int i = 0; i < map.NumRows; i++)
-            {
-                visited.Add(Enumerable.Repeat(false, map.NumCols).ToList());
-            }
-
-            while (!visited.All(x => x.All(x => x)))
-            {
-                var startPoint = GetNextNotVisited(visited);
-                visited[startPoint.Y][startPoint.X] = true;
-                if (startPoint == new Point(-1, -1))
-                {
-                    break;
-                }
-
-                var testChar = map.GetCharAtLocation(startPoint);
-                var lastPoints = new List<Point>() { startPoint };
-                var perimeter = 0;
-                var area = 1;
-                var sides = new List<FenceSide>();
-                while (lastPoints.Any())
-                {
-                    var newPoints = new List<Point>();
-
-                    foreach (var point in lastPoints)
-                    {
-                        var nextPoints = new List<Point>()
-                        {
-                            point + new Size(1 , 0),
-                            point + new Size(-1 , 0),
-                            point + new Size(0, 1),
-                            point + new Size(0, -1),
-                        };
-
-                        foreach (var nextPoint in nextPoints)
-                        {
-                            if (map.IsLocationOutOfBounds(nextPoint))
-                            {
-                                perimeter++;
-                                sides = HandleSides(sides, point, nextPoint);
-                            }
-                            else if (map.GetCharAtLocation(nextPoint) == testChar
-                                && !visited[nextPoint.Y][nextPoint.X])
-                            {
-                                area++;
-                                visited[nextPoint.Y][nextPoint.X] = true;
-                                newPoints.Add(nextPoint);
-                            }
-                            else if (map.GetCharAtLocation(nextPoint) != testChar)
-                            {
-                                perimeter++;
-                                sides = HandleSides(sides, point, nextPoint);
-                            }
-                        }
-                    }
-
-                    lastPoints = newPoints;
-                }
-
-                total1 += perimeter * area;
-                total2 += sides.Count * area;
-            }
-
-            sb.AppendLine(WriteToSb($"D12P1 : {total1}", isTest));
-            sb.AppendLine(WriteToSb($"D12P2 : {total2}", isTest));
-
             return sb.ToString();
         }
 
@@ -548,145 +360,222 @@ namespace AOC2024.Core
             return sb.ToString();
         }
 
-        private void AddToDict(Dictionary<string, long> newCounts, string rock, long value)
+        public string Day10(bool isTest)
         {
-            if (newCounts.ContainsKey(rock))
+            var sb = new StringBuilder();
+            var lines = DataLoader.GetLines(10, isTest);
+            long total1 = 0, total2 = 0;
+
+            var map = new Map2D(lines);
+            var pathsByTrailhead = new Dictionary<Point, List<Point>>();
+
+            for (int i = 0; i < map.NumRows; i++)
             {
-                newCounts[rock] += value;
+                for (int j = 0; j < map.NumCols; j++)
+                {
+                    if (map.GetCharAtLocation(j, i) == '0')
+                    {
+                        pathsByTrailhead.Add(new Point(j, i), new List<Point>() { new Point(j, i) });
+                    }
+                }
+            }
+
+            foreach (var trailhead in pathsByTrailhead)
+            {
+                var nines = new List<Point>();
+                var lastLocations = trailhead.Value;
+                while (lastLocations.Any())
+                {
+                    var newLocations = new List<Point>();
+                    foreach (var point in lastLocations)
+                    {
+                        var currentValue = int.Parse($"{map.GetCharAtLocation(point)}");
+                        var nextPoints = new List<Point>()
+                        {
+                            point + new Size(1, 0),
+                            point + new Size(0, 1),
+                            point + new Size(-1, 0),
+                            point + new Size(0, -1),
+                        };
+
+                        foreach (var nextPoint in nextPoints)
+                        {
+                            if (!map.IsLocationOutOfBounds(nextPoint) && (int.Parse($"{map.GetCharAtLocation(nextPoint)}") == currentValue + 1))
+                            {
+                                if (int.Parse($"{map.GetCharAtLocation(nextPoint)}") == 9)
+                                {
+                                    nines.Add(nextPoint);
+                                }
+                                else
+                                {
+                                    newLocations.Add(nextPoint);
+                                }
+                            }
+                        }
+                    }
+
+                    lastLocations = newLocations;
+                }
+
+                total1 += nines.Distinct().Count();
+                total2 += nines.Count();
+            }
+
+            sb.AppendLine(WriteToSb($"D10P1 : {total1}", isTest));
+            sb.AppendLine(WriteToSb($"D10P2 : {total2}", isTest));
+
+            return sb.ToString();
+        }
+
+        public string Day11(bool isTest)
+        {
+            var sb = new StringBuilder();
+            var lines = DataLoader.GetLines(11, isTest);
+            long total1 = 0, total2 = 0;
+
+            var rocks = lines.Single().Split();
+            var counts = rocks.GroupBy(x => x).ToDictionary(x => x.Key, x => (long)x.Count());
+            var numIterations = 75;
+            for (int i = 0; i < numIterations; i++)
+            {
+                var newCounts = new Dictionary<string, long>();
+                foreach (var count in counts)
+                {
+                    var rock = count.Key;
+                    if (rock == "0")
+                    {
+                        AddToDict(newCounts, "1", count.Value);
+                    }
+                    else if (rock.Length % 2 == 0)
+                    {
+                        var rock1 = rock.Substring(0, rock.Length / 2);
+                        var rock2 = rock.Substring(rock.Length / 2);
+                        AddToDict(newCounts, $"{long.Parse(rock1)}", count.Value);
+                        AddToDict(newCounts, $"{long.Parse(rock2)}", count.Value);
+                    }
+                    else
+                    {
+                        AddToDict(newCounts, $"{long.Parse(rock) * 2024L}", count.Value);
+                    }
+                }
+
+                counts = newCounts;
+                if (i == 24)
+                {
+                    total1 = counts.Sum(x => x.Value);
+                }
+            }
+
+            total2 = counts.Sum(x => x.Value);
+
+            sb.AppendLine(WriteToSb($"D11P1 : {total1}", isTest));
+            sb.AppendLine(WriteToSb($"D11P2 : {total2}", isTest));
+
+            return sb.ToString();
+        }
+
+        public string Day12(bool isTest)
+        {
+            var sb = new StringBuilder();
+            var lines = DataLoader.GetLines(12, isTest);
+            long total1 = 0, total2 = 0;
+            var map = new Map2D(lines);
+            var visited = new List<List<bool>>();
+            for (int i = 0; i < map.NumRows; i++)
+            {
+                visited.Add(Enumerable.Repeat(false, map.NumCols).ToList());
+            }
+
+            while (!visited.All(x => x.All(x => x)))
+            {
+                var startPoint = GetNextNotVisited(visited);
+                visited[startPoint.Y][startPoint.X] = true;
+                if (startPoint == new Point(-1, -1))
+                {
+                    break;
+                }
+
+                var testChar = map.GetCharAtLocation(startPoint);
+                var lastPoints = new List<Point>() { startPoint };
+                var perimeter = 0;
+                var area = 1;
+                var sides = new List<FenceSide>();
+                while (lastPoints.Any())
+                {
+                    var newPoints = new List<Point>();
+
+                    foreach (var point in lastPoints)
+                    {
+                        var nextPoints = new List<Point>()
+                        {
+                            point + new Size(1 , 0),
+                            point + new Size(-1 , 0),
+                            point + new Size(0, 1),
+                            point + new Size(0, -1),
+                        };
+
+                        foreach (var nextPoint in nextPoints)
+                        {
+                            if (map.IsLocationOutOfBounds(nextPoint))
+                            {
+                                perimeter++;
+                                sides = HandleSides(sides, point, nextPoint);
+                            }
+                            else if (map.GetCharAtLocation(nextPoint) == testChar
+                                && !visited[nextPoint.Y][nextPoint.X])
+                            {
+                                area++;
+                                visited[nextPoint.Y][nextPoint.X] = true;
+                                newPoints.Add(nextPoint);
+                            }
+                            else if (map.GetCharAtLocation(nextPoint) != testChar)
+                            {
+                                perimeter++;
+                                sides = HandleSides(sides, point, nextPoint);
+                            }
+                        }
+                    }
+
+                    lastPoints = newPoints;
+                }
+
+                total1 += perimeter * area;
+                total2 += sides.Count * area;
+            }
+
+            sb.AppendLine(WriteToSb($"D12P1 : {total1}", isTest));
+            sb.AppendLine(WriteToSb($"D12P2 : {total2}", isTest));
+
+            return sb.ToString();
+        }
+
+        private List<FenceSide> HandleSides(List<FenceSide> sides, Point point, Point nextPoint)
+        {
+            var direction = GetDirection(nextPoint, point);
+            var sides2 = sides.Where(x => x.ContinuesSide(nextPoint, direction));
+            if (sides2.Count() > 1)
+            {
+                sides = sides.Except(sides2).ToList();
+                var side = new FenceSide();
+                side.Direction = direction;
+                side.Points.Add(nextPoint);
+                side.Points.AddRange(sides2.SelectMany(x => x.Points));
+                sides.Add(side);
             }
             else
             {
-                newCounts.Add(rock, value);
-            }
-        }
-
-        private long CountXmas(List<string> lines, int i, int j)
-        {
-            var total = 0;
-            var enumerable = Enumerable.Range(0, 4);
-
-            // right
-            if (j < lines[i].Count() - 3 && string.Concat(enumerable.Select(x => lines[i][j + x])) == "XMAS")
-            {
-                total++;
-            }
-
-            // left
-            if (j >= 3 && string.Concat(enumerable.Select(x => lines[i][j - x])) == "XMAS")
-            {
-                total++;
-            }
-
-            // down
-            if (i < lines.Count - 3 && string.Concat(enumerable.Select(x => lines[i + x][j])) == "XMAS")
-            {
-                total++;
-            }
-
-            // up
-            if (i >= 3 && string.Concat(enumerable.Select(x => lines[i - x][j])) == "XMAS")
-            {
-                total++;
-            }
-
-            // down right
-            if (i < lines.Count - 3 && j < lines[i].Count() - 3 && string.Concat(enumerable.Select(x => lines[i + x][j + x])) == "XMAS")
-            {
-                total++;
-            }
-
-            // down left
-            if (i < lines.Count - 3 && j >= 3 && string.Concat(enumerable.Select(x => lines[i + x][j - x])) == "XMAS")
-            {
-                total++;
-            }
-
-            // up right
-            if (i >= 3 && j < lines[i].Count() - 3 && string.Concat(enumerable.Select(x => lines[i - x][j + x])) == "XMAS")
-            {
-                total++;
-            }
-
-            // up left
-            if (i >= 3 && j >= 3 && string.Concat(enumerable.Select(x => lines[i - x][j - x])) == "XMAS")
-            {
-                total++;
-            }
-
-            return total;
-        }
-
-        private long DefragmentAndCalcChecksum(string line)
-        {
-            long total1 = 0;
-            int j = line.Length - 1;
-            if (line.Length % 2 == 0)
-            {
-                j--;
-            }
-
-            var endValue = int.Parse(line[j].ToString());
-            var index = 0;
-            for (int i = 0; i <= j; i++)
-            {
-                var value = int.Parse(line[i].ToString());
-                if (i % 2 == 0)
+                var side = sides2.SingleOrDefault();
+                if (side is null)
                 {
-                    if (i == j)
-                    {
-                        value = endValue;
-                    }
+                    side = new FenceSide();
+                    side.Direction = direction;
+                    sides.Add(side);
+                }
 
-                    var id = i / 2;
-                    while (value > 0)
-                    {
-                        total1 += id * index++;
-                        value--;
-                    }
-                }
-                else
-                {
-                    var gap = value;
-                    var id = j / 2;
-                    while (gap > 0)
-                    {
-                        if (endValue == 0)
-                        {
-                            j -= 2;
-                            endValue = int.Parse(line[j].ToString());
-                            id = j / 2;
-                        }
-                        else
-                        {
-                            total1 += id * index++;
-                            gap--;
-                            endValue--;
-                        }
-                    }
-                }
+                side.Points.Add(nextPoint);
             }
 
-            return total1;
-        }
-
-        private Point FindSmallestVector(Point vector)
-        {
-            var primes = new List<int>() { 2, 3, 5, 7, 11, 13, 17, 19, 23 };
-            int i = 0;
-            while (i < primes.Count)
-            {
-                if (vector.X % primes[i] == 0 && vector.Y % primes[i] == 0)
-                {
-                    vector = new Point(vector.X / primes[i], vector.Y / primes[i]);
-                    i = 0;
-                }
-                else
-                {
-                    i++;
-                }
-            }
-
-            return vector;
+            return sides;
         }
 
         private Direction GetDirection(Point nextPoint, Point point)
@@ -729,70 +618,16 @@ namespace AOC2024.Core
             return new Point(-1, -1);
         }
 
-        private List<FenceSide> HandleSides(List<FenceSide> sides, Point point, Point nextPoint)
+        private void AddToDict(Dictionary<string, long> newCounts, string rock, long value)
         {
-            var direction = GetDirection(nextPoint, point);
-            var sides2 = sides.Where(x => x.ContinuesSide(nextPoint, direction));
-            if (sides2.Count() > 1)
+            if (newCounts.ContainsKey(rock))
             {
-                sides = sides.Except(sides2).ToList();
-                var side = new FenceSide();
-                side.Direction = direction;
-                side.Points.Add(nextPoint);
-                side.Points.AddRange(sides2.SelectMany(x => x.Points));
-                sides.Add(side);
+                newCounts[rock] += value;
             }
             else
             {
-                var side = sides2.SingleOrDefault();
-                if (side is null)
-                {
-                    side = new FenceSide();
-                    side.Direction = direction;
-                    sides.Add(side);
-                }
-
-                side.Points.Add(nextPoint);
+                newCounts.Add(rock, value);
             }
-
-            return sides;
-        }
-
-        private bool IsLevelOK(List<int> values)
-        {
-            var levels = values.Skip(1).Select((x, i) => x - values[i]).ToList();
-            var allIncrease = levels.All(x => x > 0);
-            var allDecrease = levels.All(x => x < 0);
-            var diffOK = levels.All(x => Math.Abs(x) <= 3 && Math.Abs(x) >= 1);
-
-            return (allIncrease || allDecrease) && diffOK;
-        }
-
-        private bool IsMas(List<string> lines, int i, int j)
-        {
-            var enumerable = Enumerable.Range(-1, 3);
-            string downRight = string.Concat(enumerable.Select(x => lines[i + x][j + x]));
-            string upRight = string.Concat(enumerable.Select(x => lines[i - x][j + x]));
-            return (downRight == "MAS" || downRight == "SAM") &&
-                (upRight == "MAS" || upRight == "SAM");
-        }
-
-        private bool IsSorted(List<Tuple<int, int>> rules, List<int> update)
-        {
-            var isSorted = true;
-            for (var i = 0; i < update.Count; i++)
-            {
-                var value = update[i];
-                var remainingItems = update.Skip(i).Take(update.Count - i).ToList();
-                var relevantOrders = rules.Where(x => x.Item2 == value).ToList();
-                if (relevantOrders.Any(x => remainingItems.Contains(x.Item1)))
-                {
-                    isSorted = false;
-                    break;
-                }
-            }
-
-            return isSorted;
         }
 
         private long MoveFilesAndCalcChecksum(string line)
@@ -859,6 +694,172 @@ namespace AOC2024.Core
             }
 
             return total;
+        }
+
+        private long DefragmentAndCalcChecksum(string line)
+        {
+            long total1 = 0;
+            int j = line.Length - 1;
+            if (line.Length % 2 == 0)
+            {
+                j--;
+            }
+
+            var endValue = int.Parse(line[j].ToString());
+            var index = 0;
+            for (int i = 0; i <= j; i++)
+            {
+                var value = int.Parse(line[i].ToString());
+                if (i % 2 == 0)
+                {
+                    if (i == j)
+                    {
+                        value = endValue;
+                    }
+
+                    var id = i / 2;
+                    while (value > 0)
+                    {
+                        total1 += id * index++;
+                        value--;
+                    }
+                }
+                else
+                {
+                    var gap = value;
+                    var id = j / 2;
+                    while (gap > 0)
+                    {
+                        if (endValue == 0)
+                        {
+                            j -= 2;
+                            endValue = int.Parse(line[j].ToString());
+                            id = j / 2;
+                        }
+                        else
+                        {
+                            total1 += id * index++;
+                            gap--;
+                            endValue--;
+                        }
+                    }
+                }
+            }
+
+            return total1;
+        }
+
+        private long CountXmas(List<string> lines, int i, int j)
+        {
+            var total = 0;
+            var enumerable = Enumerable.Range(0, 4);
+
+            // right
+            if (j < lines[i].Count() - 3 && string.Concat(enumerable.Select(x => lines[i][j + x])) == "XMAS")
+            {
+                total++;
+            }
+
+            // left
+            if (j >= 3 && string.Concat(enumerable.Select(x => lines[i][j - x])) == "XMAS")
+            {
+                total++;
+            }
+
+            // down
+            if (i < lines.Count - 3 && string.Concat(enumerable.Select(x => lines[i + x][j])) == "XMAS")
+            {
+                total++;
+            }
+
+            // up
+            if (i >= 3 && string.Concat(enumerable.Select(x => lines[i - x][j])) == "XMAS")
+            {
+                total++;
+            }
+
+            // down right
+            if (i < lines.Count - 3 && j < lines[i].Count() - 3 && string.Concat(enumerable.Select(x => lines[i + x][j + x])) == "XMAS")
+            {
+                total++;
+            }
+
+            // down left
+            if (i < lines.Count - 3 && j >= 3 && string.Concat(enumerable.Select(x => lines[i + x][j - x])) == "XMAS")
+            {
+                total++;
+            }
+
+            // up right
+            if (i >= 3 && j < lines[i].Count() - 3 && string.Concat(enumerable.Select(x => lines[i - x][j + x])) == "XMAS")
+            {
+                total++;
+            }
+
+            // up left
+            if (i >= 3 && j >= 3 && string.Concat(enumerable.Select(x => lines[i - x][j - x])) == "XMAS")
+            {
+                total++;
+            }
+
+            return total;
+        }
+
+        private Point FindSmallestVector(Point vector)
+        {
+            var primes = new List<int>() { 2, 3, 5, 7, 11, 13, 17, 19, 23 };
+            int i = 0;
+            while (i < primes.Count)
+            {
+                if (vector.X % primes[i] == 0 && vector.Y % primes[i] == 0)
+                {
+                    vector = new Point(vector.X / primes[i], vector.Y / primes[i]);
+                    i = 0;
+                }
+                else
+                {
+                    i++;
+                }
+            }
+
+            return vector;
+        }
+
+        private bool IsLevelOK(List<int> values)
+        {
+            var levels = values.Skip(1).Select((x, i) => x - values[i]).ToList();
+            var allIncrease = levels.All(x => x > 0);
+            var allDecrease = levels.All(x => x < 0);
+            var diffOK = levels.All(x => Math.Abs(x) <= 3 && Math.Abs(x) >= 1);
+
+            return (allIncrease || allDecrease) && diffOK;
+        }
+
+        private bool IsMas(List<string> lines, int i, int j)
+        {
+            var enumerable = Enumerable.Range(-1, 3);
+            string downRight = string.Concat(enumerable.Select(x => lines[i + x][j + x]));
+            string upRight = string.Concat(enumerable.Select(x => lines[i - x][j + x]));
+            return (downRight == "MAS" || downRight == "SAM") &&
+                (upRight == "MAS" || upRight == "SAM");
+        }
+
+        private bool IsSorted(List<Tuple<int, int>> rules, List<int> update)
+        {
+            var isSorted = true;
+            for (var i = 0; i < update.Count; i++)
+            {
+                var value = update[i];
+                var remainingItems = update.Skip(i).Take(update.Count - i).ToList();
+                var relevantOrders = rules.Where(x => x.Item2 == value).ToList();
+                if (relevantOrders.Any(x => remainingItems.Contains(x.Item1)))
+                {
+                    isSorted = false;
+                    break;
+                }
+            }
+
+            return isSorted;
         }
 
         private List<int> Sort(List<Tuple<int, int>> rules, List<int> pagesToSort)
