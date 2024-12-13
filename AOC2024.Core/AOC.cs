@@ -548,6 +548,32 @@ namespace AOC2024.Core
 
             return sb.ToString();
         }
+        public string Day13(bool isTest)
+        {
+            var sb = new StringBuilder();
+            var lines = DataLoader.GetLines(13, isTest);
+            long total1 = 0, total2 = 0;
+
+            while (lines.Any())
+            {
+                if (string.IsNullOrWhiteSpace(lines.First()))
+                {
+                    lines = lines.Skip(1).ToList();
+                    continue;
+                }
+
+                var group = lines.Take(3).ToList();
+                var clawGame = new ClawGame(group);
+                total1 += clawGame.GetMinTokens(true);
+                total2 += clawGame.GetMinTokens(false);
+                lines = lines.Skip(3).ToList();
+            }
+
+            sb.AppendLine(WriteToSb($"D13P1 : {total1}", isTest));
+            sb.AppendLine(WriteToSb($"D13P2 : {total2}", isTest));
+
+            return sb.ToString();
+        }
 
         private List<FenceSide> HandleSides(List<FenceSide> sides, Point point, Point nextPoint)
         {
