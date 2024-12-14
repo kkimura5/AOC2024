@@ -4,6 +4,7 @@ using System.Linq.Expressions;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
+using System.Xml;
 using System.Xml.Linq;
 
 namespace AOC2024.Core
@@ -573,6 +574,83 @@ namespace AOC2024.Core
             sb.AppendLine(WriteToSb($"D13P2 : {total2}", isTest));
 
             return sb.ToString();
+        }
+
+        public string Day14(bool isTest)
+        {
+            var sb = new StringBuilder();
+            var lines = DataLoader.GetLines(14, isTest);
+            long total1 = 0, total2 = 0;
+            Point size;
+            if (isTest)
+            {
+                size = new Point(11, 7);
+            }
+            else
+            {
+                size = new Point(101, 103);
+            }
+
+            var robots = lines.Select(x => new Robot(x, size)).ToList();
+            var finalPositions = robots.Select(x => x.GetPositionAfterSteps(100)).ToList();
+
+            var middle = new Point((size.X - 1) / 2, (size.Y - 1) / 2);
+            var q1 = finalPositions.Count(p => p.X < middle.X && p.Y < middle.Y);
+            var q2 = finalPositions.Count(p => p.X > middle.X && p.Y < middle.Y);
+            var q3 = finalPositions.Count(p => p.X < middle.X && p.Y > middle.Y);
+            var q4 = finalPositions.Count(p => p.X > middle.X && p.Y > middle.Y);
+            total1 = q1 * q2 * q3 * q4;
+
+            sb.AppendLine(WriteToSb($"D14P1 : {total1}", isTest));
+            if (!isTest)
+            {
+                total2 = 7603;
+                sb.AppendLine(WriteToSb($"D14P2 : {total2}", isTest));
+                finalPositions = robots.Select(x => x.GetPositionAfterSteps((int)total2)).ToList();
+                Print(size, finalPositions, (int)total2);
+                //for (int i = 1; i < 30000; i++)
+                //{
+                //    finalPositions = robots.Select(x => x.GetPositionAfterSteps(i)).ToList();
+                //    if (finalPositions.Count(x => x.X > 25 && x.X < 50) > finalPositions.Count / 2)
+                //    Print(size, finalPositions, i);
+                //}
+            }
+
+            return sb.ToString();
+        }
+
+        private static void Print(Point size, List<Point> finalPositions, int iteration)
+        {
+            var hasRobot = new List<List<int>>();
+
+            Console.WriteLine($"D14P2 Iteration {iteration}:");
+            for (int y = 0; y < size.Y; y++)
+            {
+                hasRobot.Add(Enumerable.Repeat(0, size.X).ToList());
+            }
+
+            foreach (var finalPosition in finalPositions)
+            {
+                hasRobot[finalPosition.Y][finalPosition.X]++;
+            }
+
+            for (int y = 0; y < size.Y; y++)
+            {
+                for (int x = 0; x < size.X; x++)
+                {
+                    if (hasRobot[y][x] > 0)
+                    {
+                        Console.Write($"{hasRobot[y][x]}");
+                    }
+                    else
+                    {
+                        Console.Write(" ");
+                    }
+
+                }
+
+                Console.WriteLine();
+            }
         }
 
         private List<FenceSide> HandleSides(List<FenceSide> sides, Point point, Point nextPoint)
