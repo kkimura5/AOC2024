@@ -26,10 +26,19 @@ namespace AOC2024.Core
         {
             return location.Y < 0 || location.X < 0 || location.X >= Lines.First().Length || location.Y >= Lines.Count();
         }
+        public void SetCharAtLocation(Point point, char v) => SetCharAtLocation(point.X, point.Y, v);
 
         public void SetCharAtLocation(int x, int y, char v)
         {
             Lines[y] = string.Concat(Lines[y].Substring(0, x), v.ToString(), Lines[y].Substring(x + 1));
+        }
+
+        public void Print()
+        {
+            foreach (var line in Lines)
+            {
+                Console.WriteLine(line);
+            }
         }
     }
 }

@@ -1,6 +1,7 @@
 ﻿using System.Data;
 using System.Drawing;
 using System.Linq.Expressions;
+using System.Numerics;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -617,6 +618,263 @@ namespace AOC2024.Core
             }
 
             return sb.ToString();
+        }
+
+
+        public string Day15(bool isTest)
+        {
+            var sb = new StringBuilder();
+            var lines = DataLoader.GetLines(15, isTest);
+            long total1 = 0, total2 = 0;
+
+            var mapLines = lines.TakeWhile(x => !string.IsNullOrWhiteSpace(x)).ToList();
+            var map = new Map2D(mapLines);
+            var largeMap = mapLines.Select(x =>
+            {
+                return x.Replace("#", "##").Replace(".", "..").Replace("@", "@.").Replace("O", "[]");
+            }).ToList();
+            var map2 = new Map2D(largeMap);
+
+            total1 = MoveRobotSmallBoxes(lines, mapLines, map);
+            total2 = MoveRobotLargeBoxes(lines, mapLines, map2);
+
+            sb.AppendLine(WriteToSb($"D15P1 : {total1}", isTest));
+            sb.AppendLine(WriteToSb($"D15P2 : {total2}", isTest));
+
+            return sb.ToString();
+        }
+
+        private long MoveRobotLargeBoxes(List<string> lines, List<string> mapLines, Map2D map)
+        {
+            long total2 = 0;
+
+            Point start = new Point(0, 0);
+            for (int y = 0; y < map.NumRows; y++)
+            {
+                for (int x = 0; x < map.NumCols; x++)
+                {
+                    if (map.GetCharAtLocation(new Point(x, y)) == '@')
+                    {
+                        start = new Point(x, y);
+                    }
+                }
+            }
+
+            var currentLocation = start;
+            var moves = 0;
+            foreach (var line in lines.Skip(mapLines.Count + 1))
+            {
+                foreach (var character in line)
+                {
+                    var vector = GetVector(character);
+
+                    if (vector == new Point(0, 0))
+                    {
+                        continue;
+                    }
+
+                    moves++;
+                    if (vector.Y == 0)
+                    {
+                        currentLocation = UpdateSimpleMap(map, currentLocation, vector);
+                    }
+                    else
+                    {
+                        currentLocation = UpdateComplexMap(map, currentLocation, vector);
+                    }                   
+                }
+            }
+
+            for (int y = 0; y < map.NumRows; y++)
+            {
+                for (int x = 0; x < map.NumCols; x++)
+                {
+                    if (map.GetCharAtLocation(x, y) == '[')
+                    {
+                        total2 += 100 * y + x;
+                    }
+                }
+            }
+
+            return total2;
+        }
+
+        private Point UpdateComplexMap(Map2D map, Point currentLocation, Point vector)
+        {
+            var testLocation = currentLocation;
+            var prevWidth = new List<bool> { true };
+            var widths = new List<List<bool>>();
+            widths.Add(prevWidth);
+            var prevStart = currentLocation.X;
+            var starts = new List<int>();
+            starts.Add(prevStart);
+            while (true)
+            {
+                testLocation += new Size(vector);
+
+                var characters = Enumerable.Range(prevStart, prevWidth.Count).Select(i => map.GetCharAtLocation(new Point(i, testLocation.Y))).ToList();
+
+                var thisStart = prevStart;
+                var thisWidth = new List<bool>();
+                for (int c = 0; c < characters.Count; c++)
+                {
+                    var charac = characters[c];
+                    if (charac == '#' && prevWidth[c])
+                    {
+                        return currentLocation;
+                    }
+                    else if (charac == ']' && c == 0 && prevWidth[c])
+                    {
+                        thisStart--;
+                        thisWidth.Add(true);
+                        thisWidth.Add(true);
+                    }
+                    else if (charac == '[' && (prevWidth[c] || (c < characters.Count - 1 && prevWidth[c + 1])))
+                    {
+                        thisWidth.Add(true);
+                        if (c == characters.Count - 1)
+                        {
+                            thisWidth.Add(true);
+                        }
+                    }
+                    else if (charac == ']' && (prevWidth[c] || (c > 0 && prevWidth[c - 1])))
+                    {
+                        thisWidth.Add(true);
+                    }
+                    else
+                    {
+                        thisWidth.Add(false);
+                    }
+                }
+
+                if (!thisWidth.Any(x => x))
+                {
+                    break;
+                }
+
+                starts.Add(thisStart);
+                widths.Add(thisWidth);
+                prevWidth = thisWidth;
+                prevStart = thisStart;
+            }
+
+            var temp = testLocation;
+            for (int i = starts.Count - 1; i >= 0; i--)
+            {
+                var thisStart = starts[i];
+                var thisWidth = widths[i];
+                for (int j = 0; j < thisWidth.Count; j++)
+                {
+                    if (thisWidth[j])
+                    {
+                        Point point = new Point(thisStart + j, temp.Y);
+                        char prevChar = map.GetCharAtLocation(point - new Size(vector));
+                        map.SetCharAtLocation(point, prevChar);
+                        map.SetCharAtLocation(point - new Size(vector), '.');
+                    }
+                }
+
+                temp -= new Size(vector);
+            }
+
+            return currentLocation + new Size(vector);
+        }
+
+        private Point UpdateSimpleMap(Map2D map, Point currentLocation, Point vector)
+        {
+            var testLocation = currentLocation;
+            while (true)
+            {
+                testLocation += new Size(vector);
+
+                if (map.GetCharAtLocation(testLocation) == '#')
+                {
+                    return currentLocation;
+                }
+
+                if (map.GetCharAtLocation(testLocation) == '.')
+                {
+                    var temp = testLocation;
+                    while (temp != currentLocation)
+                    {
+                        map.SetCharAtLocation(temp, map.GetCharAtLocation(temp - new Size(vector)));
+                        temp -= new Size(vector);
+                    }
+
+                    map.SetCharAtLocation(currentLocation, '.');
+                    return currentLocation + new Size(vector);
+                }
+            }
+        }
+
+        private long MoveRobotSmallBoxes(List<string> lines, List<string> mapLines, Map2D map)
+        {
+            long total1 = 0;
+            Point start = new Point(0, 0);
+            for (int y = 0; y < map.NumRows; y++)
+            {
+                for (int x = 0; x < map.NumCols; x++)
+                {
+                    if (map.GetCharAtLocation(new Point(x, y)) == '@')
+                    {
+                        start = new Point(x, y);
+                    }
+                }
+            }
+
+            var currentLocation = start;
+            foreach (var line in lines.Skip(mapLines.Count + 1))
+            {
+                foreach (var character in line)
+                {
+                    var vector = GetVector(character);
+
+                    if (vector == new Point(0, 0))
+                    {
+                        continue;
+                    }
+
+                    currentLocation = UpdateSimpleMap(map, currentLocation, vector);
+                }
+            }
+
+            for (int y = 0; y < map.NumRows; y++)
+            {
+                for (int x = 0; x < map.NumCols; x++)
+                {
+                    if (map.GetCharAtLocation(new Point(x, y)) == 'O')
+                    {
+                        total1 += 100 * y + x;
+                    }
+                }
+            }
+
+            return total1;
+        }
+
+        private Point GetVector(char character)
+        {
+            var direction = Direction.None;
+            switch (character)
+            {
+                case '^':
+                    direction = Direction.Up;
+                    break;
+
+                case '<':
+                    direction = Direction.Left;
+                    break;
+
+                case '>':
+                    direction = Direction.Right;
+                    break;
+
+                case 'v':
+                    direction = Direction.Down;
+                    break;
+            }
+
+            return direction.ToVector();
         }
 
         private static void Print(Point size, List<Point> finalPositions, int iteration)
