@@ -643,6 +643,105 @@ namespace AOC2024.Core
 
             return sb.ToString();
         }
+        public string Day16(bool isTest)
+        {
+            var sb = new StringBuilder();
+            var lines = DataLoader.GetLines(16, isTest);
+            long total1 = 0, total2 = 0;
+
+            var map = new Map2D(lines);
+
+            Point mazeStart = new Point(0, 0);
+            Point mazeEnd = new Point(0, 0);
+            var minScores = new List<List<Dictionary<Direction, long>>>();
+
+            for (int y = 0; y < map.NumRows; y++)
+            {
+                minScores.Add(new List<Dictionary<Direction, long>>());
+                for (int x = 0; x < map.NumCols; x++)
+                {
+                    minScores[y].Add(new Dictionary<Direction, long>());
+                    char c = map.GetCharAtLocation(new Point(x, y));
+                    if (c == 'S')
+                    {
+                        mazeStart = new Point(x, y);
+                    }
+                    else if (c == 'E')
+                    {
+                        mazeEnd = new Point(x, y);
+                    }
+                }
+            }
+
+            var paths = new List<MazePath>() 
+            { 
+                new MazePath()
+                {
+                    Direction = Direction.Right, PreviousPoints = new List<Point>() { mazeStart }, Score = 0 
+                } 
+            };
+
+            var completedPaths = new List<MazePath>();
+            while (paths.Any())
+            {
+                var newPaths = new List<MazePath>();
+                foreach (var path in paths)
+                {
+                    foreach (Direction direction in Enum.GetValues(typeof(Direction)))
+                    {
+                        if (direction == Direction.None)
+                        {
+                            continue;
+                        }
+
+                        var turnScore = path.GetTurnScore(direction);
+                        if (turnScore == 2000)
+                        {
+                            continue;
+                        }
+
+                        var newLocation = path.PreviousPoints.Last() + new Size(direction.ToVector());
+                        var nextChar = map.GetCharAtLocation(newLocation);
+                        if (nextChar == '.' || nextChar == 'E')
+                        {
+                            var newScore = path.Score + turnScore + 1;
+                            var newPath = new MazePath()
+                            {
+                                Direction = direction,
+                                Score = newScore
+                            };
+
+                            newPath.PreviousPoints.AddRange(path.PreviousPoints);
+                            newPath.PreviousPoints.Add(newLocation);
+
+                            var prevMin = minScores[newLocation.Y][newLocation.X];
+                            if (!prevMin.ContainsKey(direction) || prevMin[direction] >= newScore)
+                            {
+                                minScores[newLocation.Y][newLocation.X][direction] = newScore;
+                                newPaths.Add(newPath);
+                            }
+                        }
+                    }
+                }
+
+                completedPaths.AddRange(newPaths.Where(x => x.PreviousPoints.Last() == mazeEnd));
+                if (completedPaths.Any())
+                {
+                    newPaths = newPaths.Where(x => x.Score < completedPaths.Min(y => y.Score)).ToList();
+                }
+
+                paths = newPaths.Except(completedPaths).ToList();
+            }
+
+            var bestPaths = completedPaths.Where(x => x.Score == minScores[mazeEnd.Y][mazeEnd.X].Min(x => x.Value)).ToList();
+            total1 = minScores[mazeEnd.Y][mazeEnd.X].Min(x => x.Value);
+            total2 = bestPaths.SelectMany(x => x.PreviousPoints).Distinct().Count();
+
+            sb.AppendLine(WriteToSb($"D16P1 : {total1}", isTest));
+            sb.AppendLine(WriteToSb($"D16P2 : {total2}", isTest));
+
+            return sb.ToString();
+        }
 
         private long MoveRobotLargeBoxes(List<string> lines, List<string> mapLines, Map2D map)
         {
